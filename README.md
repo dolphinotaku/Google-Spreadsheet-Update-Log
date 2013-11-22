@@ -9,7 +9,7 @@ After that, I always change the background color by myself, that was so tired to
 
 That's why the app script come out, I would like to do those things I need by google.
 
-一天，在工作時因為要記錄好做了什麼。一份記錄清單便開始了，起初沒有什麼特別事發生，
+一天，在工作時因為要記錄做了什麼。一份記錄清單便開始了，起初沒有什麼特別事發生，
 記錄開始多了，雖然有標名狀態，但還是看得很吃力。於是為每種狀態想一種顏色，
 等待的工作是黃色，完成後的工作是安全的綠色。被判決為回報錯誤的或是已取消的工作是灰色，如此如此這般這般
 當加了一項記錄，便根據狀態自己轉顏色，自己打日期。每次都是一項記錄才進行的動作還可以認付。
@@ -36,24 +36,18 @@ Reference
 --------------------------
 <dl>
   <dt>Understanding Events</dt>
-  <dd>[1]</dd>
+  <dd><a href="https://developers.google.com/apps-script/understanding_events?hl=en" target="_blank">https://developers.google.com/apps-script/understanding_events?hl=en</a></dd>
 
   <dt>Understanding Triggers</dt>
-  <dd>[2]</dd>
+  <dd><a href="https://developers.google.com/apps-script/understanding_events?hl=en" target="_blank">https://developers.google.com/apps-script/understanding_events?hl=en</a></dd>
 
   <dt>Class Spreadsheet</dt>
-  <dd>[3]</dd>
+  <dd><a href="https://developers.google.com/apps-script/reference/spreadsheet/spreadsheet" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/spreadsheet</a></dd>
 
   <dt>Class Sheet</dt>
-  <dd>[4]</dd>
+  <dd><a href="https://developers.google.com/apps-script/reference/spreadsheet/sheet" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/sheet</a></dd>
 
   <dt>Class Range</dt>
-  <dd>[5]</dd>
+  <dd><a href="https://developers.google.com/apps-script/reference/spreadsheet/range" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/range</a></dd>
 </dl>
-
-[1]: https://developers.google.com/apps-script/understanding_events?hl=en
-[2]: https://developers.google.com/apps-script/understanding_triggers
-[3]: https://developers.google.com/apps-script/reference/spreadsheet/spreadsheet
-[4]: https://developers.google.com/apps-script/reference/spreadsheet/sheet
-[5]: https://developers.google.com/apps-script/reference/spreadsheet/range
 
