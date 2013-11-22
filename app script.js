@@ -35,10 +35,8 @@ function changeBgColorByStatus() {
   
   var colors = new Array();
   var isCurCellBgColor=false, isCurCellValueEmpty=false;
-  var r = sheet.getRange("E3");
   
   for(var rowIndex = frozenRows+1; rowIndex<maxRows; rowIndex++){
-    r = sheet.getRange("E"+rowIndex);
     changeARowBgColorByStatus(sheet, rowIndex);
   }
   
@@ -48,41 +46,43 @@ function changeBgColorByStatus() {
 }
 
 // http://stackoverflow.com/questions/3703676/google-spreadsheet-script-to-change-row-color-when-a-cell-changes-text
-/*
-function doGet(e)
-{
-  var app = UiApp.createApplication();
-  var site = SitesApp.getActiveSite();
-  var label  = app.createLabel("Hello Wrold");
-  app.add(label);
-
-  //changeBgColorByStatus()
-  return app;
-}
-
-function onOpen() {
-  changeBgColorByStatus();
-}
-*/
 
 function changeARowBgColorByStatus(sheet, rowIndex){
   var cell, row, cellValue, currentBackgroudColor = "";
   var colors = new Array();
   var isCurCellBgColor=false, isCurCellValueEmpty=false;
 
-  var maxRows = parseInt(sheet.getMaxRows()), maxColumns = parseInt(sheet.getMaxColumns());
-  
-  Logger.log("Row:"+rowIndex+" status check");
+  // get sheet Properties
+  var frozenRows = sheet.getFrozenRows();
+  var frozenCols = sheet.getFrozenColumns();  
+  var maxRows = parseInt(sheet.getMaxRows())
+  var maxColumns = parseInt(sheet.getMaxColumns());
   
   var i= rowIndex;
   
-  cell = sheet.getRange("E"+rowIndex);
+  //find the statusChange column index
+  for(var fRows = 1; fRows<=frozenRows;fRows++){
+    frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
+    frozenHeaderValues = frozenHeaderRange.getValues();
+    var statusColumnIndex = frozenHeaderValues[0].indexOf(statusChange);
+    if(statusColumnIndex>=0)
+      break;
+  }
+  if(statusColumnIndex==-1)
+    return;
+  else{
+    statusColumnIndex+=1;
+  }
+  
+  Logger.log("Row:"+rowIndex+" column:"+statusColumnIndex);
+  
+  cell = sheet.getRange(rowIndex, statusColumnIndex);
   cellValue = cell.getValue().toLowerCase();
   currentBackgroudColor = cell.getBackground().toLowerCase();
   isCurCellBgColor = currentBackgroudColor=="white";
   isCurCellValueEmpty = cellValue=="";
   
-  Logger.log("isCurCellValueEmpty: "+isCurCellValueEmpty);
+  Logger.log("isCurCellValueEmpty: "+isCurCellValueEmpty+" ,cellValue="+cellValue);
     if(!isCurCellValueEmpty){
       var isStautsFound = backgroundColorPriority[0].indexOf(cellValue);
       var isFillColor = false;
@@ -176,8 +176,6 @@ function onEdit(event){
   if(rowIndex<frozenRows)
     return;
   
-  // is status change
-  
   for(var fRows = 1; fRows<=frozenRows;fRows++){
     frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
     frozenHeaderValues = frozenHeaderRange.getValues();
@@ -185,7 +183,7 @@ function onEdit(event){
     var editColumnHeader = frozenHeaderValues[0][columnIndex-1].toLowerCase();
     // is trriger to change color?
     if(statusChange.toLowerCase() == editColumnHeader){
-      //changeARowBgColorByStatus(sheet, rowIndex);
+      changeARowBgColorByStatus(sheet, rowIndex);
       break;
     }
     
