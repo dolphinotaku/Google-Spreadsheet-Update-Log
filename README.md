@@ -1,4 +1,5 @@
 ﻿#Google Spreadsheet Update Log
+﻿#Version: 1.0.0.0 Beta
 --------------------------
 One day, when I am logged what I am doing, done, need to do and so on.
 I create a log sheet to mark all the things and the status, that was good.
