@@ -26,25 +26,29 @@ Google應該沒有那麼笨可以自動幫我做吧，到Google找了找又再�
 
 ##Usage
 --------------------------
-`spreadsheetID:` Replace with your spreadsheet ID<br>
-`logSheetName:` This the name of your log sheet<br>
-`customizeStatusColorSheetName:` If you would like overload the status color, put your own status color sheet name here,<br>
-if you do not understand what this for just ignore it.<br>
-`statusChangeColumnName:` This is your "Status" column header<br>
+###You need to change a few of value in the top of app script
 ```
 var spreadsheetID = "0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc";
 var logSheetName = "Log";
 var customizeStatusColorSheetName = "Status Color";
 var statusChangeColumnName = "Status";
 ```
+`spreadsheetID:` Replace with your spreadsheet ID<br>
+`logSheetName:` This the name of your log sheet<br>
+`customizeStatusColorSheetName:` If you would like overload the status color, 
+put your own status color sheet name here, 
+if you do not understand what this for just ignore it.<br>
+`statusChangeColumnName:` This is your "Status" column header<br>
 
-Chagne the following color to your own, please notice that the status color are <br>
 ```
 var backgroundColorPriority = [
   ["tailor make", "hardcode", "holding", "follow up", "misreporting", "cancelled", "pending", "release", "done"],
   ["#d9d2e9", "#f4cccc", "#f4cccc", "#c9daf8", "#efefef", "#efefef", "#fff2cc", "#d9ead3", "#d9ead3"]
 ];
 ```
+Chagne the following color to your own, please notice that the status color are <br>
+
+
 ```
 var addTodayWhenEdit = [
   ["Report By", "Report Date"],
@@ -54,6 +58,8 @@ var addTodayWhenEdit = [
 
 ##Change Log
 --------------------------
+* (Future): Auto insert #.(issue) number
+* (Future): Auto insert default status after typing issue description
 * Can specify the status name, color and the priority in "Status Color" sheet without any coding
 
 > create a sheet call 'Status Color', the should be
