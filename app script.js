@@ -7,13 +7,18 @@ var addTodayWhenEdit = [
   ["Report By", "Report Date"],
   ["Completed By", "Completed Date"]
 ];
-var statusChange = "Status";
+
+var statusChangeColumnName = "Status";
+var logSheetName = "Log";
+var customizeStatusColorSheetName = "Status Color";
 
 function changeBgColorByStatus() {
   var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
-  var sheet = ss.getSheetByName("Log");
-  //var sheet = ss.get
-  sheet = ss.getSheets()[0];
+  var sheet = ss.getSheetByName(logSheetName);
+
+
+  var customColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
+  
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
   var frozenCols = sheet.getFrozenColumns();  
@@ -35,9 +40,11 @@ function changeBgColorByStatus() {
   
   var colors = new Array();
   var isCurCellBgColor=false, isCurCellValueEmpty=false;
+  //var r = sheet.getRange("E3");
   
   for(var rowIndex = frozenRows+1; rowIndex<maxRows; rowIndex++){
-    changeARowBgColorByStatus(sheet, rowIndex);
+    //r = sheet.getRange("E"+rowIndex);
+    changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
   }
   
   // other ways to get cell data
@@ -47,7 +54,7 @@ function changeBgColorByStatus() {
 
 // http://stackoverflow.com/questions/3703676/google-spreadsheet-script-to-change-row-color-when-a-cell-changes-text
 
-function changeARowBgColorByStatus(sheet, rowIndex){
+function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
   var cell, row, cellValue, currentBackgroudColor = "";
   var colors = new Array();
   var isCurCellBgColor=false, isCurCellValueEmpty=false;
@@ -60,11 +67,11 @@ function changeARowBgColorByStatus(sheet, rowIndex){
   
   var i= rowIndex;
   
-  //find the statusChange column index
+  //find the statusChangeColumnName column index
   for(var fRows = 1; fRows<=frozenRows;fRows++){
     frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
     frozenHeaderValues = frozenHeaderRange.getValues();
-    var statusColumnIndex = frozenHeaderValues[0].indexOf(statusChange);
+    var statusColumnIndex = frozenHeaderValues[0].indexOf(statusChangeColumnName);
     if(statusColumnIndex>=0)
       break;
   }
@@ -82,7 +89,11 @@ function changeARowBgColorByStatus(sheet, rowIndex){
   isCurCellBgColor = currentBackgroudColor=="white";
   isCurCellValueEmpty = cellValue=="";
   
-  Logger.log("isCurCellValueEmpty: "+isCurCellValueEmpty+" ,cellValue="+cellValue);
+  if(statusColorSheet!=null)
+    backgroundColorPriority = customStatusColor(statusColorSheet);
+  
+  
+  Logger.log("isCurCellValueEmpty:"+isCurCellValueEmpty+" ,cellValue:"+cellValue);
     if(!isCurCellValueEmpty){
       var isStautsFound = backgroundColorPriority[0].indexOf(cellValue);
       var isFillColor = false;
@@ -156,6 +167,7 @@ function onEdit(event){
   
   // get sheet
   var sheet = event.source.getActiveSheet();
+  var customColorSheet = event.source.getSheetByName(customizeStatusColorSheetName);
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
   var frozenCols = sheet.getFrozenColumns();  
@@ -176,14 +188,16 @@ function onEdit(event){
   if(rowIndex<frozenRows)
     return;
   
+  // is status change
+  
   for(var fRows = 1; fRows<=frozenRows;fRows++){
     frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
     frozenHeaderValues = frozenHeaderRange.getValues();
     
     var editColumnHeader = frozenHeaderValues[0][columnIndex-1].toLowerCase();
     // is trriger to change color?
-    if(statusChange.toLowerCase() == editColumnHeader){
-      changeARowBgColorByStatus(sheet, rowIndex);
+    if(statusChangeColumnName.toLowerCase() == editColumnHeader){
+      changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
       break;
     }
     
@@ -204,11 +218,99 @@ function onEdit(event){
   }
 }
 
+function customStatusColor(sheet){
+  Logger.log("customStatusColor() function execute");
+  if(sheet==null)
+    return backgroundColorPriority;
+  // get sheet Properties
+  var frozenRows = sheet.getFrozenRows();
+  var frozenCols = sheet.getFrozenColumns();  
+  var maxRows = parseInt(sheet.getMaxRows())
+  var maxColumns = parseInt(sheet.getMaxColumns());
+  
+  // This represents ALL the data
+  var range = sheet.getDataRange();
+  var values = range.getValues();
+  
+  var readRows = values.length;
+  Logger.log("Read rows Total:"+readRows);
+  
+  var isValue, isPriority;
+  var customColorPriority = new Array();
+  customColorPriority[0] = new Array();
+  customColorPriority[1] = new Array();
+  
+  var tempValue="";
+  var tempColor="";
+  var theProiority="";
+  //backgroundColorPriority
+  Logger.log("frozenRows:"+frozenRows+" frozenCols:"+frozenCols+" maxRows:"+maxRows+" maxColumns:"+maxColumns);
+  for(var startRow = frozenRows; startRow<readRows; startRow++){
+    for(var j=0; j<maxColumns; j++){
+      isValue = false;
+      isProiority = true;
+      if(values[startRow][j]){
+        Logger.log("row:"+(startRow+frozenRows)+" col:"+(j+1)+" value:"+values[startRow][j]);
+        isValue = true;
+      }else{
+        Logger.log("row:"+(startRow+frozenRows)+" col:"+(j+1)+" value was undefined");
+        if(j==0){
+          Logger.log("No status specify, skill to next row.");
+          break;
+        }else if(j==2){
+          Logger.log("Priority have no set, routed to the tail.");
+          isProiority = false;
+        }
+      }
+      switch(j){
+        case 0:
+          tempValue = values[startRow][j].toLowerCase();
+          break;
+        case 1:
+          if(!values[startRow][j]){
+            // no value get the backgroup color
+            tempColor = sheet.getRange(startRow+1, j+1).getBackground();
+            Logger.log(tempColor);
+          }else{
+          }
+          break;
+        case 2:
+          if(isValue){
+            if(!isNaN(parseInt(values[startRow][j]))){
+              if(parseInt(values[startRow][j])>0){
+              theProiority = parseInt(values[startRow][j])-1;
+              // if value is numeric
+              customColorPriority[0][theProiority] = tempValue;
+              customColorPriority[1][theProiority] = tempColor;
+              }
+            }else{
+              // if value is non-numeric, push to the end of array
+              customColorPriority[0].push(tempValue);
+              customColorPriority[1].push(tempColor);
+            }
+          }
+          break;
+      }
+    }
+  }
+  /*
+  for(var i=0; i<backgroundColorPriority[0].length; i++){
+    Logger.log("status:"+i+" "+backgroundColorPriority[0][i]+" color:"+i+" "+backgroundColorPriority[1][i]);
+  }
+  */
+  return customColorPriority;
+}
+
 function onOpen(){
+  //var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var menuEntries = [];
   // When the user selects "addMenuExample" menu, and clicks "Menu Entry 1", the function function1 is executed.
   menuEntries.push({name: "Refresh Colors", functionName: "changeBgColorByStatus"});
   //menuEntries.push({name: "Menu Entry 2", functionName: "function2"});
   ss.addMenu("KeithBox3.2 Log", menuEntries);
+  
+  // Use customize status color
+  var statusColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
+  customStatusColor(statusColorSheet);
 }
