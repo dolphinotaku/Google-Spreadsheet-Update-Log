@@ -166,7 +166,7 @@ function onEdit(event){
   var frozenHeaderValues = new Array();
   
   // get sheet
-  var sheet = event.source.getActiveSheet();
+  var sheet = event.source.getSheetByName(logSheetName);
   var customColorSheet = event.source.getSheetByName(customizeStatusColorSheetName);
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
