@@ -10,6 +10,17 @@ After that, I always change the background color by myself, that was so tired to
 
 That's why the app script come out, I would like to do those things by Google automatically.
 
+Today date is 2013-12-06, a discouraged and exhilarating day.
+I found that Google Spreadsheet provide 2 new function, when i right click in a cell
+Coordination formatting
+Data validation
+The first one make me lose heart, my first mind: What the?!!!
+That is definitely replacing what my app script written for if it change a row background
+I'm totally lose, how can i fighting with google development team?
+No, no, can not stop now, I still have something would like Google helping me to do so.
+
+On the another hands, the second function is extremely
+
 一天，在工作時因為要記錄做了什麼。一份記錄清單便開始了，起初沒有什麼特別事發生，
 記錄開始多了，雖然有標明狀態，但還是看得很吃力。於是為每種狀態想一種顏色，
 等待的工作是汽車在等黃燈的黃色，完成後的工作是安全的綠色。被判決為回報錯誤的或是已取消的工作是灰色，如此如此這般這般
@@ -20,6 +31,14 @@ That's why the app script come out, I would like to do those things by Google au
 太煩了不想按執行，但是不按又看得很辛苦又很麻煩。
 Google應該沒有那麼笨可以自動幫我做吧，到Google找了找又再寫多一段，漸漸就成了現在的幾段。
 
+今天是2013-12-06，發現了Google Spreadsheet提供了二個新功能
+條件式格式設定
+驗證資料
+第一個幾符完全取代了我寫下的app script，只差一點點就被google擺了一道。
+差點全敗了，一個人的作業與Google開發團體的作業，輸贏早定了，不行，燃燒起來了。
+
+話說回來，我愛死第二個功能了。可以令column成為 unique KEY，即係可以變成Primary key，
+有了PK即是可以洐生出Foreign key，而且還可以建立範圍清單。哈哈哈，那代表提供了更多空間可以做到更多事情。
 
 ##Demo
 --------------------------
@@ -62,7 +81,7 @@ var addTodayWhenEdit = [
 * (Future): Auto insert #.(issue) number
 * (Future): Auto insert default status after typing issue description
 * Can specify the status name, color and the priority in "Status Color" sheet without any coding
-
+(low performance, not recommend to use if you have known how to change backgroundColorPriority)
 > create a sheet call 'Status Color', the should be
 > 
 > | Status | Color in Hex/RGB | Priority |
@@ -96,4 +115,5 @@ Please see the [LICENSE][license] file for further details.
 | 2 | Class Spreadsheet | <a href="https://developers.google.com/apps-script/reference/spreadsheet/spreadsheet" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/spreadsheet</a>
 | 3 | Class Sheet | <a href="https://developers.google.com/apps-script/reference/spreadsheet/sheet" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/sheet</a>
 | 4 | Class Range | <a href="https://developers.google.com/apps-script/reference/spreadsheet/range" target="_blank">https://developers.google.com/apps-script/reference/spreadsheet/range</a>
+| 5 | Spreadsheets size and complexity limits | <a href="https://support.google.com/drive/answer/2505921" target="_blank">https://support.google.com/drive/answer/2505921</a>
 
