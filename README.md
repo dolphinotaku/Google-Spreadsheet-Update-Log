@@ -12,8 +12,10 @@ That's why the app script come out, I would like to do those things by Google au
 
 Today date is 2013-12-06, a discouraged and exhilarating day.
 I found that Google Spreadsheet provide 2 new function, when i right click in a cell
-Coordination formatting
-Data validation
+
+* Coordination formatting
+* Data validation
+
 The first one make me lose heart, my first mind: What the?!!!
 That is definitely replacing what my app script written for if it change a row background
 I'm totally lose, how can i fighting with google development team?
@@ -32,8 +34,10 @@ On the another hands, the second function is extremely
 Google應該沒有那麼笨可以自動幫我做吧，到Google找了找又再寫多一段，漸漸就成了現在的幾段。
 
 今天是2013-12-06，發現了Google Spreadsheet提供了二個新功能
-條件式格式設定
-驗證資料
+
+* 條件式格式設定
+* 驗證資料
+
 第一個幾符完全取代了我寫下的app script，只差一點點就被google擺了一道。
 差點全敗了，一個人的作業與Google開發團體的作業，輸贏早定了，不行，燃燒起來了。
 
