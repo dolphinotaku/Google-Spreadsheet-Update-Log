@@ -3,19 +3,29 @@ var logSheetName = "Log";
 var customizeStatusColorSheetName = "Status Color";
 var statusChangeColumnName = "Status";
 
-var backgroundColorPriority = [
-  ["tailor make", "hardcode", "holding", "follow up", "misreporting", "cancelled", "pending", "release", "done"],
-  ["#d9d2e9", "#f4cccc", "#f4cccc", "#c9daf8", "#efefef", "#efefef", "#fff2cc", "#d9ead3", "#d9ead3"]
-];
-var addTodayWhenEdit = [
+var addTodayWhenEdit = [ // [whenEditCell, addTodayCell]
   ["Report By", "Report Date"],
   ["Completed By", "Completed Date"]
 ];
 
+var backgroundColorPriority = [
+  // status: Top priority <--------------------> Low priority
+  ["tailor make", "hardcode", "holding", "follow up", "misreporting", "cancelled", "pending", "release", "done"],
+  // stauts background color
+  ["#d9d2e9", "#f4cccc", "#f4cccc", "#c9daf8", "#efefef", "#efefef", "#fff2cc", "#d9ead3", "#d9ead3"]
+];
+
+// Prepare a New Line
+var autoGenKeyColumn = ["#.", ""]; // [columnHeaderName, autoGenFormat]
+var dateValidation = [ // instance, validationMethods, argument [, argument]
+  [addTodayWhenEdit[1][1], "DateOnOrAfter", addTodayWhenEdit[0][1]] // "Completed Date" must OnOrAfter "Report Date"
+];
+var prepareHowManyRows = "20";
+
 Logger.clear();
 
 function changeBgColorByStatus() {
-  var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
+  var ss = SpreadsheetApp.openById("spreadsheetID");
   var sheet = ss.getSheetByName(logSheetName);
   var customColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
   //var sheet = ss.get
@@ -36,21 +46,14 @@ function changeBgColorByStatus() {
   // Cancelled 			= #efefef
   // Pending 			= #fff2cc
   // Release 			= #d9ead3
-  // Done 				= #d9ead3
-  //Logger.log("Cell color: "+sheet.getRange("E79").getBackground());  
+  // Done 				= #d9ead3 
   
   var colors = new Array();
   var isCurCellBgColor=false, isCurCellValueEmpty=false;
-  //var r = sheet.getRange("E3");
   
   for(var rowIndex = frozenRows+1; rowIndex<maxRows; rowIndex++){
-    //r = sheet.getRange("E"+rowIndex);
     changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
   }
-  
-  // other ways to get cell data
-  // var values = SpreadsheetApp.getActiveSheet().getDataRange().getValues()
-  // values[0][2]
 }
 
 // http://stackoverflow.com/questions/3703676/google-spreadsheet-script-to-change-row-color-when-a-cell-changes-text
@@ -107,7 +110,7 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
   isCurCellValueEmpty = cellValue=="";
   
   
-  //var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
+  //var ss = SpreadsheetApp.openById("spreadsheetID");
   //var statusColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
   if(statusColorSheet!=null)
     backgroundColorPriority = customStatusColor(statusColorSheet);
@@ -180,7 +183,7 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
 }
 
 function printTodayAt(sheet, r){
-  Logger.log("start printTodayAt");
+  Logger.log("printTodayAt() function execute");
   var targetValue = r.getValue()
   var targetCell = r;
   if(targetValue==""){
@@ -193,12 +196,12 @@ function printTodayAt(sheet, r){
 }
 
 function onEdit(event){
-  Logger.log("onEdit triggered");
+  Logger.log("onEdit() function execute");
   var frozenHeaderRange = new Array();
   var frozenHeaderValues = new Array();
   
   // get sheet
-  //var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
+  //var ss = SpreadsheetApp.openById("spreadsheetID");
   //var sheet = ss.getSheetByName(logSheetName);
   var sheet = event.source.getSheetByName(logSheetName);
   //var sheet = event.source.getActiveSheet();
@@ -220,36 +223,31 @@ function onEdit(event){
   Logger.log("Edit Range start at X:"+columnIndex+" Y: "+rowIndex);
   Logger.log("First "+frozenRows+" row(s) are Igrone(Frozen)");
   
-  if(rowIndex<frozenRows){
+  if(frozenRows<=0){
+    Logger.log("No row(s) frozen, assume the Header at the first row.");
+    frozenRows = 1;
+  }else if(rowIndex<frozenRows){
     Logger.log("Edit in frozen area.");
     return;
   }
   
-  // is status change
+  var editCellHeader = findHeaderByColumnIndex(sheet, columnIndex, rowIndex);
   
-  for(var fRows = 1; fRows<=frozenRows;fRows++){
-    frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
-    frozenHeaderValues = frozenHeaderRange.getValues();
+
+  for(var i=0; i<editCellHeader.length; i++){
+    // is editing status column?{
+    Logger.log("editCellHeader[i]:"+editCellHeader[i]+" statusChangeColumnName:"+statusChangeColumnName);
     
-    var editColumnHeader = frozenHeaderValues[0][columnIndex-1].toLowerCase();
-    // is trriger to change color?
-    if(statusChangeColumnName.toLowerCase() == editColumnHeader){
-      changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
+    if(editCellHeader[i].indexOf(statusChangeColumnName)>=0){
+      changeARowBgColorByStatus(customColorSheet, sheet);
       break;
     }
-    
-    // is trriger to add to today?
-    for(var i=0; i<addTodayWhenEdit.length; i++){
-      var triggerHeader = addTodayWhenEdit[i][0].toLowerCase();
-      //Logger.log("triggerHeader: "+triggerHeader+", editColumnHeader: "+editColumnHeader);
-      
-      if(triggerHeader==editColumnHeader){
-        var targetColumnIndex = frozenHeaderValues[0].indexOf(addTodayWhenEdit[i][1]);
-        if(targetColumnIndex>=0){
-          var r = sheet.getRange(rowIndex, targetColumnIndex+1);
-           //Logger.log("r: "+r.getValue())
+    // is trigger insert today date? 
+    for(var j=0; i<addTodayWhenEdit.length; j++){
+      if(editCellHeader[i].indexOf(addTodayWhenEdit[j][0])>=0){
+          var r = sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][0]));
+        
           printTodayAt(sheet, r);
-        }
       }
     }
   }
@@ -354,6 +352,7 @@ function customStatusColor(sheet){
   return customColorPriority;
 }
 
+// replace by rgbcolor.js
 function colorInTextValidator(color){
   var isColorValid = /^#[0-9A-F]{6}$/i.test(color);
   Logger.log( color +" is a color = "+isColorValid );
@@ -361,9 +360,63 @@ function colorInTextValidator(color){
   // /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test('#ac3') // for #f00 (Thanks Smamatti)
 }
 
+function prepareANewLine(){
+}
+function prepareNewLines(){
+  //
+  
+  autoGenNum();
+  
+}
+
+function findColumnIndexByHeader(sheet, header, rowIndex){
+  Logger.log("findColumnIndexByHeader() function execute");
+  var frozenHeaderRange = new Array();
+  var frozenHeaderValues = new Array();
+  var isHeaderFound = false;
+  var headerFoundAtColumn = -1;
+  // get sheet Properties
+  var frozenRows = sheet.getFrozenRows();
+  var frozenCols = sheet.getFrozenColumns();
+  var maxRows = parseInt(sheet.getMaxRows())
+  var maxColumns = parseInt(sheet.getMaxColumns());
+  
+  // get the Header(FrozenRows) cell value
+  for(var rowPointer = 1; rowPointer<=frozenRows;rowPointer++){
+    frozenRowRange = sheet.getRange(rowPointer, 1, 1, maxColumns);
+    frozenRowValues = frozenRowRange.getValues();
+    headerFoundAtColumn = frozenRowValues[0].indexOf(header);
+    //Logger.log("frozenRowValues:"+frozenRowValues[0]+" headerFoundAtColumn:"+headerFoundAtColumn);
+    if(headerFoundAtColumn>=0){
+      isHeaderFound = true;
+      break
+    }
+  }
+  return headerFoundAtColumn;
+}
+
+function findHeaderByColumnIndex(sheet, columnIndex, rowIndex){
+  Logger.log("findHeaderByColumnIndex() function execute");
+  var frozenHeaderRange = new Array();
+  var frozenHeaderValues = new Array();
+  var headerValue = "";
+  // get sheet Properties
+  var frozenRows = sheet.getFrozenRows();
+  var frozenCols = sheet.getFrozenColumns();
+  var maxRows = parseInt(sheet.getMaxRows())
+  var maxColumns = parseInt(sheet.getMaxColumns());
+  
+  //Logger.log("frozenRows:"+frozenRows+" ,frozenCols:"+frozenCols);
+  
+  // get the Header value
+  frozenRowValues = sheet.getRange(1, columnIndex, frozenRows, 1).getValues();
+
+  return frozenRowValues;
+}
+
 function onOpen(){
-  var ss = SpreadsheetApp.openById("0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc");
-  //var ss = SpreadsheetApp.getActiveSpreadsheet();
+  //var ss = SpreadsheetApp.openById("spreadsheetID");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var menuEntries = [];
   // When the user selects "addMenuExample" menu, and clicks "Menu Entry 1", the function function1 is executed.
   menuEntries.push({name: "Refresh Colors", functionName: "changeBgColorByStatus"});
