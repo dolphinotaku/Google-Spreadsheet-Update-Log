@@ -28,16 +28,11 @@ function changeBgColorByStatus() {
   var ss = SpreadsheetApp.openById("spreadsheetID");
   var sheet = ss.getSheetByName(logSheetName);
   var customColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
-  //var sheet = ss.get
-  //sheet = ss.getSheets()[0];
+  
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
-  var frozenCols = sheet.getFrozenColumns();  
   var maxRows = parseInt(sheet.getMaxRows())
-  var maxColumns = parseInt(sheet.getMaxColumns());
   Logger.log("Current Spreadsheet max rows: "+maxRows);
-  Logger.log("Current Spreadsheet max columns: "+maxColumns);
-  var cell, row, cellValue, currentBackgroudColor = "";
   
   // white,undefined  	= nothing
   // Hardcode 			= #f4cccc
@@ -46,10 +41,7 @@ function changeBgColorByStatus() {
   // Cancelled 			= #efefef
   // Pending 			= #fff2cc
   // Release 			= #d9ead3
-  // Done 				= #d9ead3 
-  
-  var colors = new Array();
-  var isCurCellBgColor=false, isCurCellValueEmpty=false;
+  // Done 				= #d9ead3
   
   for(var rowIndex = frozenRows+1; rowIndex<maxRows; rowIndex++){
     changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
@@ -77,7 +69,7 @@ function onOpen() {
 function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
   var cell, row, cellValue, currentBackgroudColor = "";
   var colors = new Array();
-  var isCurCellBgColor=false, isCurCellValueEmpty=false;
+  var isCurCellBgColor=false, isValueEmpty=false;
 
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
@@ -85,21 +77,9 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
   var maxRows = parseInt(sheet.getMaxRows())
   var maxColumns = parseInt(sheet.getMaxColumns());
   
-  var i= rowIndex;
-  
-  //find the statusChangeColumnName column index
-  for(var fRows = 1; fRows<=frozenRows;fRows++){
-    frozenHeaderRange = sheet.getRange(fRows, 1, 1, maxColumns);
-    frozenHeaderValues = frozenHeaderRange.getValues();
-    var statusColumnIndex = frozenHeaderValues[0].indexOf(statusChangeColumnName);
-    if(statusColumnIndex>=0)
-      break;
-  }
+  statusColumnIndex = findColumnIndexByHeader(sheet, statusChangeColumnName);
   if(statusColumnIndex==-1)
     return;
-  else{
-    statusColumnIndex+=1;
-  }
   
   Logger.log("Row:"+rowIndex+" column:"+statusColumnIndex);
   
@@ -107,24 +87,36 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
   cellValue = cell.getValue().toLowerCase();
   currentBackgroudColor = cell.getBackground().toLowerCase();
   isCurCellBgColor = currentBackgroudColor=="white";
-  isCurCellValueEmpty = cellValue=="";
+  isValueEmpty = cellValue=="";
   
-  
-  //var ss = SpreadsheetApp.openById("spreadsheetID");
-  //var statusColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
-  if(statusColorSheet!=null)
+  if(statusColorSheet!=null) // if customize BGColor sheet exist
     backgroundColorPriority = customStatusColor(statusColorSheet);
   
+  Logger.log("Value:"+cellValue+" ,isValueEmpty:"+isValueEmpty);
   
-  Logger.log("isCurCellValueEmpty:"+isCurCellValueEmpty+" ,cellValue:"+cellValue);
-    if(!isCurCellValueEmpty){
+  // if status cell empty, clear row background color
+    if(isValueEmpty){
+      var isBackgroundColor = backgroundColorPriority[1].indexOf(currentBackgroudColor);
+      if(isBackgroundColor<0)
+        Logger.log("Row:"+rowIndex+", isBgColorWhite: "+isCurCellBgColor+" && isValueEmpty: "+!isValueEmpty);{
+        Logger.log("i: "+currentBackgroudColor+", cellValue: "+cellValue);
+      }
+      row = sheet.getRange(rowIndex, 1, 1, maxColumns);
+        colors[0]  = new Array(maxColumns);
+      for(var k=0; k<maxColumns; k++){
+        colors[0][k] = "white";
+      }
+      row.setBackgrounds(colors);
+      return;
+    }
+  
+  // if status cell not empty, check is status specified
       var isStautsFound = backgroundColorPriority[0].indexOf(cellValue);
       var isFillColor = false;
       
       if(isStautsFound >= 0){
           isFillColor = true;
       }else{
-        Logger.log("Rows: "+i)
         for(var m=0; m<backgroundColorPriority[0].length; m++){
           isStautsFound = cellValue.indexOf(backgroundColorPriority[0][m]);
           Logger.log("Cell Value: "+cellValue+" = "+backgroundColorPriority[0][m]+" : "+m);
@@ -149,10 +141,10 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
           for(var k=0; k<maxColumns; k++){
             colors[0][k] = bgColorchangeToThis;
           }
-          row = sheet.getRange(i, 1, 1, maxColumns);
+          row = sheet.getRange(rowIndex, 1, 1, maxColumns);
           row.setBackgrounds(colors);
         
-          Logger.log("Change row "+i+" background color: "+currentBackgroudColor+" change to "+bgColorchangeToThis);
+          Logger.log("Change row "+rowIndex+" background color: "+currentBackgroudColor+" change to "+bgColorchangeToThis);
         /*if(colors.length<=7)
           row.setBackgrounds(colors);
         else{
@@ -160,26 +152,13 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
           row.setBackgroundRGB(rgbColors.r, rgbColors.g, rgbColors.b);
         }*/
       }else{
-        row = sheet.getRange(i, 1, 1, maxColumns);
+        row = sheet.getRange(rowIndex, 1, 1, maxColumns);
         colors[0]  = new Array(maxColumns);
         for(var k=0; k<maxColumns; k++){
           colors[0][k] = "white";
         }
         row.setBackgrounds(colors);
       }
-    }else{
-      var isBackgroundColor = backgroundColorPriority[1].indexOf(currentBackgroudColor);
-      if(isBackgroundColor<0)
-        Logger.log("Row E"+i+", isBgColorWhite: "+isCurCellBgColor+" && isCellNotEmpty: "+!isCurCellValueEmpty);{
-        Logger.log("i: "+currentBackgroudColor+", cellValue: "+cellValue);
-      }
-      row = sheet.getRange(i, 1, 1, maxColumns);
-        colors[0]  = new Array(maxColumns);
-      for(var k=0; k<maxColumns; k++){
-        colors[0][k] = "white";
-      }
-      row.setBackgrounds(colors);
-    }
 }
 
 function printTodayAt(sheet, r){
@@ -239,15 +218,16 @@ function onEdit(event){
     Logger.log("editCellHeader[i]:"+editCellHeader[i]+" statusChangeColumnName:"+statusChangeColumnName);
     
     if(editCellHeader[i].indexOf(statusChangeColumnName)>=0){
-      changeARowBgColorByStatus(customColorSheet, sheet);
+      changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
       break;
     }
     // is trigger insert today date? 
-    for(var j=0; i<addTodayWhenEdit.length; j++){
+    for(var j=0; j<addTodayWhenEdit.length; j++){
       if(editCellHeader[i].indexOf(addTodayWhenEdit[j][0])>=0){
-          var r = sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][0]));
-        
+        if(r.getValue()!=""){ // if empty after edit, don't printToday. e.g after press Del
+          var r = sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][1]));
           printTodayAt(sheet, r);
+        }
       }
     }
   }
@@ -392,7 +372,7 @@ function findColumnIndexByHeader(sheet, header, rowIndex){
       break
     }
   }
-  return headerFoundAtColumn;
+  return headerFoundAtColumn+1;
 }
 
 function findHeaderByColumnIndex(sheet, columnIndex, rowIndex){
