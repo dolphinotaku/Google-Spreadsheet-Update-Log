@@ -20,7 +20,7 @@ var autoGenKeyColumn = ["#.", ""]; // [columnHeaderName, autoGenFormat]
 var dateValidation = [ // instance, validationMethods, argument [, argument]
   [addTodayWhenEdit[1][1], "DateOnOrAfter", addTodayWhenEdit[0][1]] // "Completed Date" must OnOrAfter "Report Date"
 ];
-var prepareHowManyRows = "20";
+var prepareHowManyRows = 5;
 
 Logger.clear();
 
@@ -188,7 +188,7 @@ function onEdit(event){
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
   var frozenCols = sheet.getFrozenColumns();  
-  var maxRows = parseInt(sheet.getMaxRows())
+  var maxRows = parseInt(sheet.getMaxRows());
   var maxColumns = parseInt(sheet.getMaxColumns());
   
   // get active range
@@ -198,8 +198,9 @@ function onEdit(event){
   // get the top left Coordinate of range
   var rowIndex = r.getRowIndex();
   var columnIndex = r.getColumn();
+  var cellValue = r.getValue();
   
-  Logger.log("Edit Range start at X:"+columnIndex+" Y: "+rowIndex);
+  Logger.log("Edit Row:"+rowIndex+" Col: "+columnIndex+" Value:"+cellValue);
   Logger.log("First "+frozenRows+" row(s) are Igrone(Frozen)");
   
   if(frozenRows<=0){
@@ -210,26 +211,32 @@ function onEdit(event){
     return;
   }
   
-  var editCellHeader = findHeaderByColumnIndex(sheet, columnIndex, rowIndex);
+  /*
+  // is editing status column?
+  if(columnIndex==findColumnIndexByHeader(sheet, statusChangeColumnName)){
+    changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
+  }
   
-
-  for(var i=0; i<editCellHeader.length; i++){
-    // is editing status column?{
-    Logger.log("editCellHeader[i]:"+editCellHeader[i]+" statusChangeColumnName:"+statusChangeColumnName);
-    
-    if(editCellHeader[i].indexOf(statusChangeColumnName)>=0){
-      changeARowBgColorByStatus(customColorSheet, sheet, rowIndex);
-      break;
-    }
-    // is trigger insert today date? 
-    for(var j=0; j<addTodayWhenEdit.length; j++){
-      if(editCellHeader[i].indexOf(addTodayWhenEdit[j][0])>=0){
-        if(r.getValue()!=""){ // if empty after edit, don't printToday. e.g after press Del
-          var r = sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][1]));
-          printTodayAt(sheet, r);
-        }
+  // check all the first element of the addTodayWhenEdit sub array
+  for(var j=0; j<addTodayWhenEdit.length; j++){
+    // is trigger insert today date?
+    if(columnIndex==findColumnIndexByHeader(sheet, addTodayWhenEdit[j][0])){
+      if(cellValue!=""){ // if empty after edit, don't printToday. e.g after press Del
+        printTodayAt(sheet, sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][1])));
       }
     }
+  }
+  */
+  
+  var autoGenColIndex = findColumnIndexByHeader(sheet, autoGenKeyColumn[0]);
+  
+  Logger.log(r.isBlank());
+  Logger.log(autoGenColIndex == columnIndex);
+  
+  //Logger.log("isCellValueEmpty:"+ r.isBlank() +" isEditAutoGenCell:"+ autoGenColIndex == columnIndex);
+  if(!r.isBlank() && autoGenColIndex != columnIndex){
+    // prepareNewLines
+    prepareNewLines(sheet, rowIndex);
   }
 }
 
@@ -340,20 +347,119 @@ function colorInTextValidator(color){
   // /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test('#ac3') // for #f00 (Thanks Smamatti)
 }
 
-function prepareANewLine(){
-}
-function prepareNewLines(){
-  //
-  
-  autoGenNum();
-  
+function prepareANewLine(sheet, prepareThisRow){
+  Logger.log("prepareANewLine() function execute");
+  var isStop;
+  isStop = autoGenNum(sheet, prepareThisRow, findColumnIndexByHeader(sheet, autoGenKeyColumn[0]));
+  if(isStop){
+    Logger.log("Stop Prepare New Lines");
+    return;
+  }
 }
 
-function findColumnIndexByHeader(sheet, header, rowIndex){
+function prepareNewLines(sheet, prepareAfterThisRow){
+  Logger.log("prepareNewLines() function execute");
+  //Logger.log("hello");
+  //var r = sheet.getRange();
+  var isCompensation = true;
+  var theNumberOfGeneratedRow = 0;
+  for(var prepareThisRow = prepareAfterThisRow+1; prepareThisRow<=prepareAfterThisRow+prepareHowManyRows; prepareThisRow++){
+    Logger.log("prepareThisRow:"+prepareThisRow+" prepareAfterThisRow:"+prepareAfterThisRow+" prepareHowManyRows:"+prepareHowManyRows);
+    var prepareRowRange = sheet.getRange(prepareThisRow, findColumnIndexByHeader(sheet, autoGenKeyColumn[0])); //, 1, 1);
+    var prepareRowValue = prepareRowRange.getValue();
+    //prepareRowValue = prepareRowValue[0][0];
+    var isPrepareRowEmpty = prepareRowRange.isBlank();
+    var isPrepareRowNumeric = !isNaN(prepareRowValue);
+    Logger.log("prepareRowValue:"+prepareRowValue+" isPrepareRowEmpty:"+isPrepareRowEmpty+" isPrepareRowNumeric:"+isPrepareRowNumeric);
+    if(isPrepareRowNumeric){ // if numeric, is the number valid?
+      var prepareRowUpperRowRange = sheet.getRange((prepareThisRow-1), findColumnIndexByHeader(sheet, autoGenKeyColumn[0])); //, 1, 1);
+      var prepareRowUpperRowValue = prepareRowUpperRowRange.getValue();
+      prepareRowValue = Number(prepareRowValue);
+      //prepareRowUpperRowValue = prepareRowUpperRowValue[0][0];
+      if(prepareRowUpperRowValue+1==prepareRowValue){ // if the number valid, skip to gen this row
+        theNumberOfGeneratedRow+=1;
+        Logger.log("The row:"+prepareThisRow+" already prepared before");
+        var halfOfPrepareHowManyRows = Math.round(prepareHowManyRows/2);
+        if(theNumberOfGeneratedRow>=halfOfPrepareHowManyRows){
+          Logger.log("The prepared row >= the half of prepareHowManyRows, strike to generate auto numbers");
+          break;
+        }
+        continue;
+      }
+    }
+    if(isCompensation){
+      isCompensation = false;
+      prepareHowManyRows += theNumberOfGeneratedRow; // Compensation
+    }
+
+    prepareANewLine(sheet, prepareThisRow);
+  }
+}
+
+function autoGenNum(sheet, autoGenNumThisRow, autoGenColumnIndex){
+  Logger.log("autoGenNum() function execute");
+  // return bool(false/true) to continuestop/stop prepareNewLines;
+  var theNextNumber = -1;
+  
+  // get sheet Properties
+  var frozenRows = sheet.getFrozenRows();
+  var frozenCols = sheet.getFrozenColumns();  
+  var maxRows = parseInt(sheet.getMaxRows())
+  var maxColumns = parseInt(sheet.getMaxColumns());
+  
+  // This represents ALL the data
+  var range = sheet.getDataRange();
+  var values = range.getValues();
+  
+  var numOfRows = values.length-frozenRows;
+  range = sheet.getRange(frozenRows+1, autoGenColumnIndex, numOfRows, 1);
+  values = range.getValues();
+  //var values = SpreadsheetApp.getActiveSheet().getRange(2, 3, 6, 4).getValues();
+  Logger.log("Total "+numOfRows+" row(s) read, start from row "+frozenRows);
+  
+  
+  // Min and max in multidimensional array
+  var xVals = values.map(function(obj) { return obj; });
+  var max = Math.max.apply(null, xVals);
+  var min = Math.min.apply(null, xVals);
+  // var max = Math.max.apply(Math, a.map(function(obj){return obj;}));
+  // if the array like this, change obj to obj.x
+  // var a = new Array();
+  // a[0] = {x: 10,y: 10};
+  // a[1] = {x: 20,y: 50};
+  // http://stackoverflow.com/questions/15042887/min-and-max-in-multidimensional-array
+  // http://stackoverflow.com/questions/4020796/finding-the-max-value-of-an-attribute-in-an-array-of-objects
+  
+  var currentRowAutoGenCell = sheet.getRange(autoGenNumThisRow-1, autoGenColumnIndex);
+  
+  Logger.log("max:"+max+", min:"+min);
+  Logger.log("Current row auto gen num cell:"+currentRowAutoGenCell.getValue() );
+  
+  // stop when activate row autoGenNumCell is empty
+  if(min==0 || currentRowAutoGenCell.getValue()==""){
+    Logger.log("The insertion is invalid. Because some of the auto gen cell is empty or 0");
+    Logger.log("Please insert into the row which auto gen num cell value is vaild");
+    Logger.log("Stop auto generate number");
+    return true;
+  }
+  
+  var autoGenNumCell = sheet.getRange(autoGenNumThisRow, autoGenColumnIndex);
+  var newAutoGenValue = max+1;
+  Logger.log("Row:"+(autoGenNumThisRow)+" Col:"+autoGenColumnIndex+" setValue:"+newAutoGenValue);
+  if(autoGenNumCell.isBlank()){
+    autoGenNumCell.setValue(newAutoGenValue);
+  }else{
+    Logger.log("The cell is not empty, don't replace the current value "+autoGenNumCell.getValue());
+  }
+  
+  return false;
+}
+
+function findColumnIndexByHeader(sheet, header){
   Logger.log("findColumnIndexByHeader() function execute");
   var frozenHeaderRange = new Array();
   var frozenHeaderValues = new Array();
-  var isHeaderFound = false;
+  //var isHeaderFound = false;
   var headerFoundAtColumn = -1;
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
@@ -367,15 +473,18 @@ function findColumnIndexByHeader(sheet, header, rowIndex){
     frozenRowValues = frozenRowRange.getValues();
     headerFoundAtColumn = frozenRowValues[0].indexOf(header);
     //Logger.log("frozenRowValues:"+frozenRowValues[0]+" headerFoundAtColumn:"+headerFoundAtColumn);
+    Logger.log("header:"+header+" headerFoundAtColumn:"+headerFoundAtColumn);
     if(headerFoundAtColumn>=0){
-      isHeaderFound = true;
-      break
+      //isHeaderFound = true;
+      Logger.log("findColumnIndexByHeader return "+(headerFoundAtColumn+1));
+      return headerFoundAtColumn+1;
+      break;
     }
   }
-  return headerFoundAtColumn+1;
+  return headerFoundAtColumn;
 }
 
-function findHeaderByColumnIndex(sheet, columnIndex, rowIndex){
+function findHeaderByColumnIndex(sheet, columnIndex){
   Logger.log("findHeaderByColumnIndex() function execute");
   var frozenHeaderRange = new Array();
   var frozenHeaderValues = new Array();
