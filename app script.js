@@ -1,11 +1,12 @@
 var spreadsheetID = "0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc";
+
 var logSheetName = "Log";
 var customizeStatusColorSheetName = "Status Color";
 var statusChangeColumnName = "Status";
 
 var addTodayWhenEdit = [ // [whenEditCell, addTodayCell]
   ["Report By", "Report Date"],
-  ["Completed By", "Completed Date"]
+  ["Completed By", "Completion Date"]
 ];
 
 var backgroundColorPriority = [
@@ -16,11 +17,21 @@ var backgroundColorPriority = [
 ];
 
 // Prepare a New Line
-var autoGenKeyColumn = ["#.", ""]; // [columnHeaderName, autoGenFormat]
-var dateValidation = [ // instance, validationMethods, argument [, argument]
-  [addTodayWhenEdit[1][1], "DateOnOrAfter", addTodayWhenEdit[0][1]] // "Completed Date" must OnOrAfter "Report Date"
+var isPrepareNewLines = false; // turn this on(ture) if you kown what you are doing
+// ====================================================================
+var autoGenKeyColumn = ["#.", ""]; // [columnHeaderName, autoGenFormat], autoGenFormat just a idea not done
+var prepareNewLineWhenEdit = "Description";
+var selectionList = [
+  //[statusChangeColumnName, backgroundColorPriority[0]], // uncomment this if your status allow a single status only
+  ["Issue Type", ["Bug", "Improvement", "Tuning", "What", "Check"]],
+  ["Priority", ["P1", "P2", "P3", "P4"]]
 ];
 var prepareHowManyRows = 5;
+
+//not implemented
+var requireValidation = [ // instance, validationMethods, [argumentType, argumentValue...]
+  [addTodayWhenEdit[1][1], "requireDateOnOrAfter", ["date", "eval('sheet.getRange(prepareThisRow, findColumnIndexByHeader(sheet, addTodayWhenEdit[0][1]]])).getValue()')"]] // "Completion Date" must OnOrAfter "Report Date"
+];
 
 Logger.clear();
 
@@ -35,7 +46,6 @@ function changeBgColorByStatus() {
   var range = sheet.getDataRange();
   var numRowsHaveData = range.getNumRows();
   
-  //var maxRows = parseInt(sheet.getMaxRows())
   Logger.log("Current Spreadsheet max rows: "+numRowsHaveData);
   
   // white,undefined  	= nothing
@@ -101,7 +111,7 @@ function changeARowBgColorByStatus(statusColorSheet, sheet, rowIndex){
 
   Logger.log("Value:"+currentRowStatusCellValue+" ,isValueEmpty:"+isValueEmpty);
   
-  var range = sheet.getRange(rowIndex, 1, 1, maxColumns);
+  var range = sheet.getRange(rowIndex, frozenCols+1, 1, maxColumns-frozenCols);
   
   // if status cell empty, clear row background color
     if(isValueEmpty){
@@ -171,17 +181,17 @@ function printTodayAt(sheet, r){
   var targetCell = r;
   if(targetValue==""){
     var now = new Date();
-    Logger.log("Insert "+now.toLocaleDateString()+" into X:"+targetCell.getColumn()+" Y:"+targetCell.getRow());
-    now = now.toLocaleDateString();
-    targetCell.setNumberFormat("yyyy-MM-dd");
-    targetCell.setValue(now);
+    // the time zone not same as where I'm local, so toLocaleDateString() before
+    //now = now.toLocaleDateString();
+    //Logger.log("Insert:"+now.getFullYear()+"-"+(now.getMonth()+1)+"-"+now.getDate()+" into "+targetCell.setNumberFormat("yyyy-MM-dd").setValue(now).getA1Notation());
+    Logger.log("Insert:"+now+" into "+targetCell.setNumberFormat("yyyy-MM-dd").setValue(now).getA1Notation());
   }
 }
 
 function onEdit(event){
-  Logger.log("onEdit() function execute");
-  var frozenHeaderRange = new Array();
-  var frozenHeaderValues = new Array();
+  Logger.log("onEdit() function execute");  
+  Logger.log("Locale:"+event.source.getSpreadsheetLocale());
+  Logger.log("TimeZone:"+event.source.getSpreadsheetTimeZone());
   
   // get sheet
   //var ss = SpreadsheetApp.openById("spreadsheetID");
@@ -191,27 +201,24 @@ function onEdit(event){
   var customColorSheet = event.source.getSheetByName(customizeStatusColorSheetName);
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
-  var frozenCols = sheet.getFrozenColumns();  
-  var maxRows = parseInt(sheet.getMaxRows());
-  var maxColumns = parseInt(sheet.getMaxColumns());
+  var frozenCols = sheet.getFrozenColumns();
   
   // get active range
   var r = event.range;
-  //var r = event.source.getActiveRange();
   
   // get the top left Coordinate of range
   var rowIndex = r.getRowIndex();
   var columnIndex = r.getColumn();
-  var cellValue = r.getValue();
+  //var cellValue = r.getValue();
   
-  Logger.log("Edit Row:"+rowIndex+" Col: "+columnIndex+" Value:"+cellValue);
-  Logger.log("First "+frozenRows+" row(s) are Igrone(Frozen)");
+  Logger.log("Edit Row:"+rowIndex+" Col: "+columnIndex+" Value:"+r.getValue());
+  Logger.log("First:"+frozenRows+" row(s), First:"+frozenCols+" col(s) are Igrone(Frozen area)");
   
   if(frozenRows<=0){
     Logger.log("No row(s) frozen, assume the Header at the first row.");
     frozenRows = 1;
-  }else if(rowIndex<frozenRows){
-    Logger.log("Edit in frozen area.");
+  }else if(rowIndex<frozenRows || columnIndex<frozenCols){
+    Logger.log("Edit in frozen area, igrone the onEdit Event & Trigger");
     return;
   }
   
@@ -224,18 +231,20 @@ function onEdit(event){
   for(var j=0; j<addTodayWhenEdit.length; j++){
     // is trigger insert today date?
     if(columnIndex==findColumnIndexByHeader(sheet, addTodayWhenEdit[j][0])){
-      if(cellValue!=""){ // if empty after edit, don't printToday. e.g after press Del
+      if(!r.isBlank()){ // if empty after edit, don't printToday. e.g after press Del
         printTodayAt(sheet, sheet.getRange(rowIndex, findColumnIndexByHeader(sheet, addTodayWhenEdit[j][1])));
       }
     }
   }
   
-  var autoGenColIndex = findColumnIndexByHeader(sheet, autoGenKeyColumn[0]);
-  
-  Logger.log("isOnEditCellEmpty:"+ r.isBlank() +" isOnEditAutoGenCell:"+ autoGenColIndex == columnIndex);
-  if(!r.isBlank() && autoGenColIndex != columnIndex){
-    // prepareNewLines
-    prepareNewLines(sheet, rowIndex);
+  if(columnIndex == findColumnIndexByHeader(sheet, prepareNewLineWhenEdit)){
+    var autoGenColIndex = findColumnIndexByHeader(sheet, autoGenKeyColumn[0]);
+    
+    Logger.log("isOnEditCellEmpty:"+ r.isBlank() +" isOnEditAutoGenCell:"+ autoGenColIndex == columnIndex);
+    if(!r.isBlank() && autoGenColIndex != columnIndex){
+      // prepareNewLines
+      prepareNewLines(sheet, rowIndex);
+    }
   }
 }
 
@@ -245,11 +254,8 @@ function customStatusColor(sheet){
     return backgroundColorPriority;
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
-  var frozenCols = sheet.getFrozenColumns();  
-  var maxRows = parseInt(sheet.getMaxRows())
-  var maxColumns = parseInt(sheet.getMaxColumns());
-  
-  Logger.log("frozenRows:"+frozenRows+" frozenCols:"+frozenCols+" maxRows:"+maxRows+" maxColumns:"+maxColumns);
+  var frozenCols = sheet.getFrozenColumns();
+  Logger.log("frozenRows:"+frozenRows+" frozenCols:"+frozenCols);
   
   // This represents ALL the data
   var range = sheet.getDataRange();
@@ -340,26 +346,17 @@ Array.prototype.clean = function(deleteValue) {
 function prepareANewLine(sheet, prepareThisRow){
   Logger.log("prepareANewLine() function execute");
   var isStop;
-  isStop = autoGenNum(sheet, prepareThisRow, findColumnIndexByHeader(sheet, autoGenKeyColumn[0]));
-  if(isStop){
-    Logger.log("Stop Prepare New Lines");
-    return;
+  autoGenNum(sheet, prepareThisRow, findColumnIndexByHeader(sheet, autoGenKeyColumn[0]));
+  copyRuleToNextRow(sheet, prepareThisRow-1);
+	/*
+  if(prepareThisRow>sheet.getFrozenRows()+1){
+	copyRuleToNextRow(sheet, prepareThisRow-1);
+  }else{
+    for(var i=0; i<selectionList.length; i++){
+	  selectionListInsertion(sheet, findColumnIndexByHeader(sheet, selectionList[i][0]), selectionList[i][1]);
+    }
   }
-  var selectionList = new Array();
-  selectionList = ["Bug", "Improvement", "Tuning", "What", "Check"];
-  isStop = selectionListInsertion(sheet, sheet.getRange(prepareThisRow, 2), selectionList);
-  if(isStop){
-    Logger.log("Stop Prepare New Lines");
-    return;
-  }
-  
-  selectionList = new Array();
-  selectionList = ["P1", "P2", "P3", "P4"];
-  isStop = selectionListInsertion(sheet, sheet.getRange(prepareThisRow, 4), selectionList);
-  if(isStop){
-    Logger.log("Stop Prepare New Lines");
-    return;
-  }
+  */
 }
 
 String.prototype.capitalize = function() {
@@ -367,40 +364,55 @@ String.prototype.capitalize = function() {
 };
 
 function prepareNewLines(sheet, prepareAfterThisRow){
-  Logger.log("prepareNewLines() function execute");
-  //Logger.log("hello");
-  //var r = sheet.getRange();
-  var isCompensation = true;
+  Logger.log("prepareNewLines() function execute, check After Row:"+prepareAfterThisRow+" prepareHowManyRows:"+prepareHowManyRows);
   var theNumberOfGeneratedRow = 0;
+  var prepareRow = true;
+  var halfOfPrepareHowManyRows = Math.round(prepareHowManyRows/2);
+  // checking row in top-down flow
   for(var prepareThisRow = prepareAfterThisRow+1; prepareThisRow<=prepareAfterThisRow+prepareHowManyRows; prepareThisRow++){
-    Logger.log("prepareThisRow:"+prepareThisRow+" prepareAfterThisRow:"+prepareAfterThisRow+" prepareHowManyRows:"+prepareHowManyRows);
+    Logger.log("Checking Row no.:"+prepareThisRow);
     var prepareRowRange = sheet.getRange(prepareThisRow, findColumnIndexByHeader(sheet, autoGenKeyColumn[0])); //, 1, 1);
     var prepareRowValue = prepareRowRange.getValue();
     //prepareRowValue = prepareRowValue[0][0];
     var isPrepareRowEmpty = prepareRowRange.isBlank();
-    var isPrepareRowNumeric = !isNaN(prepareRowValue); // is prepare this row value numeric
-    Logger.log("prepareRowValue:"+prepareRowValue+" isPrepareRowEmpty:"+isPrepareRowEmpty+" isPrepareRowNumeric:"+isPrepareRowNumeric);
-    if(isPrepareRowNumeric){ // if numeric, is the sequence number valid?
+    var isKeyColumnNumeric = !isNaN(prepareRowValue) && !isPrepareRowEmpty; // is prepareThisRow key column value numeric
+    Logger.log("Key Value:"+prepareRowValue+" isPrepareRowEmpty:"+isPrepareRowEmpty+" isKeyColumnNumeric:"+isKeyColumnNumeric);
+	
+	// if prepare Row Key Column is numberic, is the sequence number valid?
+    if(isKeyColumnNumeric){
       var prepareRowUpperRowRange = sheet.getRange((prepareThisRow-1), findColumnIndexByHeader(sheet, autoGenKeyColumn[0])); //, 1, 1);
       var prepareRowUpperRowValue = prepareRowUpperRowRange.getValue();
       prepareRowValue = Number(prepareRowValue);
-      
-      if(prepareRowUpperRowValue+1==prepareRowValue){ // is the prepart row sequence number vaild, next of the upper row?
+      // is the prepare row sequence number vaild, skip to next row if valid
+      if(prepareRowUpperRowValue+1==prepareRowValue){ // 
         theNumberOfGeneratedRow+=1;
         Logger.log("The row:"+prepareThisRow+" already prepared before");
-        var halfOfPrepareHowManyRows = Math.round(prepareHowManyRows/2);
         if(theNumberOfGeneratedRow>=halfOfPrepareHowManyRows){
-          Logger.log("The prepared row >= the half of prepareHowManyRows, strike to generate auto numbers");
-          break;
+          Logger.log("The prepared rows >= the half of prepareHowManyRows, strike to generate auto numbers");
+		  return; // if the sequence number valid (int)prepareHowManyRows/2 times, that means a half of prepareHowManyRows are prepared
         }
         continue; // skip to gen this row
       }
     }
-    if(isCompensation){
-      isCompensation = false;
-      prepareHowManyRows += theNumberOfGeneratedRow; // Compensation
-    }
-
+  }
+  
+  if(theNumberOfGeneratedRow>0){
+	prepareAfterThisRow += theNumberOfGeneratedRow;
+  }
+  
+  // checking row in bottom-up
+  var theNumberOfGeneratedRow = 0;
+  if(prepareAfterThisRow-sheet.getFrozenRows()>halfOfPrepareHowManyRows)
+  for(var preparedRow = prepareAfterThisRow-halfOfPrepareHowManyRows+1; preparedRow<prepareAfterThisRow; preparedRow++){
+	if(sheet.getRange(preparedRow, findColumnIndexByHeader(sheet, prepareNewLineWhenEdit)).isBlank()){
+		theNumberOfGeneratedRow +=1;
+		if(theNumberOfGeneratedRow>=halfOfPrepareHowManyRows){
+          Logger.log("The blank rows >= the half of prepareHowManyRows, strike to generate auto numbers");
+		  return;
+		}
+	}
+  }
+  for(var prepareThisRow = prepareAfterThisRow+1; prepareThisRow<=prepareAfterThisRow+prepareHowManyRows; prepareThisRow++){
     prepareANewLine(sheet, prepareThisRow);
   }
 }
@@ -427,7 +439,7 @@ function autoGenNum(sheet, autoGenNumThisRow, autoGenColumnIndex){
   
   // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
-  var frozenCols = sheet.getFrozenColumns();  
+  var frozenCols = sheet.getFrozenColumns();
   var maxRows = parseInt(sheet.getMaxRows())
   var maxColumns = parseInt(sheet.getMaxColumns());
   
@@ -440,7 +452,6 @@ function autoGenNum(sheet, autoGenNumThisRow, autoGenColumnIndex){
   values = range.getValues();
   //var values = SpreadsheetApp.getActiveSheet().getRange(2, 3, 6, 4).getValues();
   Logger.log("Total "+numOfRows+" row(s) read, start from row "+frozenRows);
-  
   
   // Min and max in multidimensional array
   var xVals = values.map(function(obj) { return obj; });
@@ -459,33 +470,31 @@ function autoGenNum(sheet, autoGenNumThisRow, autoGenColumnIndex){
   Logger.log("max:"+max+", min:"+min);
   Logger.log("Current row auto gen num cell:"+currentRowAutoGenCell.getValue() );
   
-  // stop when activate row autoGenNumCell is empty
+  // if i copy row to sheet and tpying a new row, new row autoGenCell are forever empty
+  // checking handling in description checking in prepareNewLines
+  /* is activate row autoGenNumCell is empty
   if(min==0 || currentRowAutoGenCell.getValue()==""){
     Logger.log("The insertion is invalid. Because some of the auto gen cell is empty or 0");
     Logger.log("Please insert into the row which auto gen num cell value is vaild");
     Logger.log("Stop auto generate number");
     return true;
-  }
+  }*/
   
   var autoGenNumCell = sheet.getRange(autoGenNumThisRow, autoGenColumnIndex);
   var newAutoGenValue = max+1;
-  Logger.log("Row:"+(autoGenNumThisRow)+" Col:"+autoGenColumnIndex+" setValue:"+newAutoGenValue);
+  Logger.log("Row:"+(autoGenNumThisRow)+" Col:"+autoGenColumnIndex+" setValueue:"+newAutoGenValue);
   if(autoGenNumCell.isBlank()){
     autoGenNumCell.setValue(newAutoGenValue);
   }else{
     Logger.log("The cell is not empty, don't replace the current value "+autoGenNumCell.getValue());
   }
-  
-  return false;
 }
 
 function findColumnIndexByHeader(sheet, header){
   Logger.log("findColumnIndexByHeader() function execute");
   var frozenHeaderRange = new Array();
   var frozenHeaderValues = new Array();
-  //var isHeaderFound = false;
   var headerFoundAtColumn = -1;
-  // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
   var maxColumns = parseInt(sheet.getMaxColumns());
   
@@ -508,12 +517,10 @@ function findHeaderByColumnIndex(sheet, columnIndex){
   var frozenHeaderRange = new Array();
   var frozenHeaderValues = new Array();
   var headerValue = "";
-  // get sheet Properties
   var frozenRows = sheet.getFrozenRows();
   
   // get the Header value
   frozenRowValues = sheet.getRange(1, columnIndex, frozenRows, 1).getValues();
-
   return frozenRowValues;
 }
 
@@ -521,20 +528,30 @@ function onOpen(){
   //var ss = SpreadsheetApp.openById("spreadsheetID");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var menuEntries = [];
-  // When the user selects "addMenuExample" menu, and clicks "Menu Entry 1", the function function1 is executed.
   menuEntries.push({name: "Refresh Colors", functionName: "changeBgColorByStatus"});
   menuEntries.push({name: "Clear All List", functionName: "clearAllSelectionList"});
   ss.addMenu("KeithBox3.2 Log", menuEntries);
-  
-  // Use customize status color
-  //var s2 = SpreadsheetApp.getActiveSheet();
-  /*
-  var statusColorSheet = ss.getSheetByName(customizeStatusColorSheetName);
-  customStatusColor(statusColorSheet);
-  */
+}
+
+function testing(){
+  var ss = SpreadsheetApp.openById(spreadsheetID);
+  var sheet = ss.getSheetByName(logSheetName);
+  var range = sheet.getRange(3, 1, 1, sheet.getMaxColumns());
+  var rules = range.getDataValidations();
+  var nextRange = sheet.getRange(4, 1, 1, sheet.getMaxColumns());
+  nextRange.setDataValidations(rules);
+}
+
+function copyRuleToNextRow(sheet, copyThisRow){
+  Logger.log("copyRuleToNextRow() function execute");
+  var range = sheet.getRange(copyThisRow, 1, 1, sheet.getMaxColumns());
+  var rules = range.getDataValidations();
+  var nextRange = sheet.getRange(++copyThisRow, 1, 1, sheet.getMaxColumns());
+  Logger.log("Row:"+copyThisRow+" rules copy to next row");
+  nextRange.setDataValidations(rules);
 }
 
 function clearAllSelectionList(){
-  var ss = SpreadsheetApp.openById("spreadsheetID");
+  var ss = SpreadsheetApp.openById(spreadsheetID);
   var sheet = ss.getSheetByName(logSheetName);
 }
