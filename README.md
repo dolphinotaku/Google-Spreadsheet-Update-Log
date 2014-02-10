@@ -46,7 +46,8 @@ Google應該沒有那麼笨可以自動幫我做吧，到Google找了找又再�
 
 ##Demo
 --------------------------
-<!--<a href="https://docs.google.com/spreadsheet/ccc?key=0AlaVan9pZtAzdEF5Wm9HQzFiTlpNQVF4a3hmWDJxSGc&usp=sharing" target="_blank">Go to my site Update Log</a>-->
+<a href"http://keithbox.blogspot.com/2014/02/google-spreadsheet-update-log.html" target="_blank">Installation / Configuration</a>
+<a href="https://docs.google.com/spreadsheet/ccc?key=0AlaVan9pZtAzdHQzeU5iRURUQ3JLNnAydHZaa3JMdUE&usp=drive_web#gid=0" target="_blank">Update Log - Template</a>
 
 ##Usage
 --------------------------
